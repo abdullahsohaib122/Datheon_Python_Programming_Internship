@@ -83,5 +83,123 @@ python organizer.py
 - `os`
 - `shutil`
 - `pathlib`
+# Task 4 – Rule-Based Customer Support Chatbot
+
+## Overview
+This project is a rule-based customer support chatbot developed using Python as part of the Datheon Python Programming Internship, Batch 01.
+
+The chatbot processes user messages using keyword matching, regular expressions, predefined responses, and an FAQ dataset. It provides basic conversational support and answers common internship-related questions.
+
+## Features
+- Recognizes greetings and common conversational messages.
+- Matches keywords and patterns using regular expressions.
+- Corrects selected common typing mistakes.
+- Loads frequently asked questions from a JSON file.
+- Uses fuzzy matching to identify potentially relevant FAQ answers.
+- Answers questions about internship enrollment, project submission, certificates, and business hours when configured information is available.
+- Provides fallback responses for unknown questions.
+- Supports exit commands such as `bye`, `exit`, and `quit`.
+- Handles missing or invalid FAQ files and keyboard interruptions.
+
+## Technologies Used
+- Python 3
+- `re` – Regular expressions
+- `json` – Reading FAQ data
+- `random` – Selecting varied responses
+- `pathlib` – File path management
+- `difflib` – Text similarity matching
+
+All dependencies are included in Python's standard library.
+
+## Project Structure
+
+```text
+Datheon_Python_Internship/
+├── chatbot.py
+├── faqs.json
+└── README.md
+```
+
+**Files:**
+- `chatbot.py` – Main chatbot implementation.
+- `faqs.json` – FAQ questions and answers.
+- `README.md` – Project documentation.
+
+## Requirements
+- Python 3.8 or later recommended.
+- Visual Studio Code or another Python editor.
+- `chatbot.py` and `faqs.json` stored in the same directory.
+
+## How to Run
+
+**1. Check Python installation:**
+
+```bash
+python --version
+```
+
+**2. Open a terminal in the project directory.**
+
+**3. Run the chatbot:**
+
+```bash
+python chatbot.py
+```
+
+**4.** Enter your message when prompted.
+
+**5.** Type `bye`, `exit`, or `quit` to end the conversation.
+
+## Example Usage
+
+```text
+You: Hello
+Bot: Hello! Welcome to Datheon Internship Support.
+     How can I help?
+
+You: How can I enroll in internship?
+Bot: Check the official Datheon announcement or
+     application instructions for enrollment details.
+
+You: My project is ready
+Bot: Great job completing your project!
+     Before submitting, test your code and check
+     your README.
+
+You: bye
+Bot: Goodbye! Best of luck with your internship.
+```
+
+*Note: Actual responses may vary depending on the chatbot's configured responses and FAQ data.*
+
+## Working Process
+
+1. Receives user input.
+2. Normalizes the text and corrects selected spelling mistakes.
+3. Identifies matching patterns and keywords.
+4. Searches the FAQ dataset for a relevant answer.
+5. Generates an appropriate response or fallback message.
+6. Continues the conversation until an exit command is entered.
+
+## Limitations
+- Uses predefined rules rather than a machine-learning model.
+- May not understand complex or ambiguous questions.
+- Typo correction is limited to predefined words.
+- FAQ accuracy depends on the available dataset.
+- Official internship policies should be verified through official communications.
+
+## Learning Outcomes
+This project demonstrates the use of Python functions, classes, dictionaries, regular expressions, JSON handling, text similarity, exception handling, and interactive command-line programming.
+
+## Conclusion
+The Rule-Based Customer Support Chatbot demonstrates how Python can be used to create a simple interactive support application. It combines rule-based message recognition with FAQ retrieval and graceful fallback handling.
+
+## Project Information
+- **Task:** 4 – Rule-Based Customer Support Chatbot
+- **Program:** Datheon Python Programming Internship
+- **Batch:** 01
+- **Language:** Python
+
 ## Author
+
 Abdullah Sohaib

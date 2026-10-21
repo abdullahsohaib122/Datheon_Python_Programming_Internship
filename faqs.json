@@ -1,0 +1,151 @@
+
+{
+  "greetings": [
+    "hello",
+    "hi",
+    "hey",
+    "good morning",
+    "good afternoon",
+    "good evening",
+    "good night",
+    "howdy",
+    "hello dear",
+    "hi there"
+  ],
+  "faqs": [
+    {
+      "intent": "business_hours",
+      "question": "What are your hours of operation?",
+      "keywords": [
+        "business hours",
+        "opening hours",
+        "opening time",
+        "working hours",
+        "when are you open",
+        "when do you close",
+        "office timings",
+        "office hours"
+      ],
+      "answer": "The sample FAQ lists business hours as Monday through Friday, 9:00 AM to 6:00 PM IST. These are sample details, so please verify the applicable hours with the official organization."
+    },
+    {
+      "intent": "project_submission",
+      "question": "How do I submit my internship project?",
+      "keywords": [
+        "submit my project",
+        "submit project",
+        "project submission",
+        "upload my project",
+        "submit my task",
+        "github repository",
+        "student workspace",
+        "how to submit",
+        "where to submit",
+        "submit internship tasks",
+        "project upload",
+        "submission process"
+      ],
+      "answer": "The sample FAQ says to submit your public GitHub repository link through the Student Workspace. Follow the official instructions for your batch and check that your repository contains the required source code and README."
+    },
+    {
+      "intent": "certificate",
+      "question": "When will I receive my certificate?",
+      "keywords": [
+        "certificate",
+        "certificates",
+        "certificate status",
+        "certificate review",
+        "when will i receive",
+        "when do i get my certificate",
+        "official certificate",
+        "certificate verification",
+        "credential",
+        "credentials",
+        "certificate issue",
+        "certificate delivery"
+      ],
+      "answer": "The sample FAQ states that certificates are reviewed and issued within 3–5 business days after code review. This is sample information, not a guarantee. Check your official internship portal for your actual status."
+    },
+    {
+      "intent": "internship_details",
+      "question": "What is this internship about?",
+      "keywords": [
+        "internship details",
+        "internship program",
+        "internship tasks",
+        "internship requirements",
+        "what is this internship",
+        "internship information",
+        "what will i learn",
+        "internship duration",
+        "internship work",
+        "internship activities"
+      ],
+      "answer": "This demo is designed to answer common internship-support questions. For the actual program's tasks, deadlines, duration and requirements, follow the official instructions provided for your batch."
+    },
+    {
+      "intent": "support",
+      "question": "How can I get support?",
+      "keywords": [
+        "customer support",
+        "technical support",
+        "contact support",
+        "contact team",
+        "need assistance",
+        "get help",
+        "i need help",
+        "support contact",
+        "report a problem",
+        "technical issue",
+        "help with my account",
+        "contact the organization"
+      ],
+      "answer": "I can help with common questions covered by this demo. For account-specific issues, contact the program through its official support channel."
+    },
+    {
+      "intent": "repository_requirements",
+      "question": "What should my GitHub repository contain?",
+      "keywords": [
+        "repository requirements",
+        "github requirements",
+        "what files should i upload",
+        "what should my repository contain",
+        "readme file",
+        "source code",
+        "repository structure",
+        "public repository",
+        "github project files"
+      ],
+      "answer": "Your repository should contain the required source code and a clear README explaining the project and how to run it. Follow the exact repository naming, visibility and submission instructions given for your batch."
+    },
+    {
+      "intent": "task_requirements",
+      "question": "How many internship tasks must I complete?",
+      "keywords": [
+        "how many tasks",
+        "task requirements",
+        "minimum tasks",
+        "number of tasks",
+        "tasks to complete",
+        "internship assignments",
+        "how many projects",
+        "required tasks"
+      ],
+      "answer": "Please check the original internship instructions for the exact number of tasks required. I don't want to guess about your batch's completion criteria."
+    },
+    {
+      "intent": "credential_verification",
+      "question": "How does credential verification work?",
+      "keywords": [
+        "credential verification",
+        "verify my credential",
+        "certificate verification process",
+        "code review",
+        "credential status",
+        "verification process",
+        "review my submission"
+      ],
+      "answer": "The sample FAQ refers to a code review before certificate issuance. For the exact verification steps and your individual status, consult the official instructions or portal."
+    }
+  ]
+}

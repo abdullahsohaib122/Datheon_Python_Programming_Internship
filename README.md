@@ -126,7 +126,7 @@ Datheon_Python_Internship/
 - `README.md` – Project documentation.
 
 ## Requirements
-- Python 3.8 or later recommended.
+- Python 3.15 or later recommended.
 - Visual Studio Code or another Python editor.
 - `chatbot.py` and `faqs.json` stored in the same directory.
 

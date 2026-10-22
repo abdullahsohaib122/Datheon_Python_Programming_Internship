@@ -6,868 +6,654 @@ from pathlib import Path
 from difflib import SequenceMatcher
 
 
-# ==========================================================
-# DATHEON INTERNSHIP SUPPORT BOT - VERSION 5.0
-# Rule-based conversational chatbot
-# ==========================================================
+# ============================================================
+# Datheon Python Programming Internship
+# Task 4: Rule-Based Customer Support Chatbot
+# Version: 5.1
+# ============================================================
+
 
 BASE_DIR = Path(__file__).resolve().parent
 FAQ_FILE = BASE_DIR / "faqs.json"
 
 
-# -------------------- FAQ LOADING --------------------
-
-def load_faqs():
-    try:
-        with FAQ_FILE.open("r", encoding="utf-8") as file:
-            data = json.load(file)
-
-        if not isinstance(data, dict):
-            raise ValueError("FAQ JSON must contain an object.")
-
-        greetings = data.get("greetings", [])
-        faqs = data.get("faqs", [])
-
-        if not isinstance(greetings, list):
-            greetings = []
-
-        if not isinstance(faqs, list):
-            faqs = []
-
-        valid_greetings = [
-            item.strip().lower()
-            for item in greetings
-            if isinstance(item, str) and item.strip()
-        ]
-
-        valid_faqs = []
-
-        for faq in faqs:
-            if not isinstance(faq, dict):
-                continue
-
-            intent = faq.get("intent", "")
-            question = faq.get("question", "")
-            answer = faq.get("answer", "")
-            keywords = faq.get("keywords", [])
-
-            if not all(
-                isinstance(value, str) and value.strip()
-                for value in (intent, question, answer)
-            ):
-                continue
-
-            if not isinstance(keywords, list):
-                keywords = []
-
-            valid_faqs.append({
-                "intent": intent.strip().lower(),
-                "question": question.strip(),
-                "answer": answer.strip(),
-                "keywords": [
-                    item.strip().lower()
-                    for item in keywords
-                    if isinstance(item, str) and item.strip()
-                ],
-            })
-
-        return valid_greetings, valid_faqs
-
-    except FileNotFoundError:
-        print("Warning: faqs.json was not found.")
-    except json.JSONDecodeError as error:
-        print(f"Warning: Invalid JSON: {error}")
-    except (OSError, ValueError) as error:
-        print(f"Warning: Could not load FAQs: {error}")
-
-    return [], []
-
-
-GREETINGS, FAQS = load_faqs()
-
-
-# -------------------- NATURAL RESPONSES --------------------
+# -------------------- DEFAULT RESPONSES --------------------
 
 REPLIES = {
     "greeting": [
-        "Hello! 😊 How can I help you today?",
-        "Good to see you! What would you like to know?",
-        "Hey there! I'm ready to help.",
-        "Good morning! Hope you're having a good day. What can I help with?",
-        "Hi! What's on your mind?",
-        "Hello dear! 😊 How may I assist you?"
+        "Hello! Welcome to the customer support chatbot.",
+        "Hi there! How can I help you today?",
+        "Hey! Ask me anything about the internship."
     ],
-
     "how_are_you": [
-        "I'm doing well, thanks for asking! How are you?",
-        "I'm here and ready to help! 😊 How's your day going?",
-        "All good on my side! What can I help you with today?",
-        "I'm working well, thank you! What would you like to talk about?"
+        "I'm doing great! Thanks for asking.",
+        "I'm functioning well and ready to help!"
     ],
-
     "identity": [
-        "I'm the Internship Support Bot, a Python-based chatbot demo. "
-        "I use programmed rules and a JSON FAQ file to answer questions.",
-
-        "I'm a chatbot, not a human. This version uses Python, regular "
-        "expressions, keyword matching and saved FAQs to respond.",
-
-        "You’re chatting with the Internship Support Bot. I can answer "
-        "supported questions, but I can't access private student accounts."
+        "I'm a rule-based customer support chatbot built with Python."
     ],
-
     "conversation": [
-        "Of course! 😊 Go ahead, I'm listening.",
-        "Absolutely. What would you like to talk about?",
-        "Sure! Tell me what's on your mind.",
-        "Of course, you can ask me a question. I'll do my best to help.",
-        "I'm here to help. What would you like to know?"
+        "I'm here to help! What would you like to know?"
     ],
-
     "pleasant": [
-        "It's nice talking to you too! 😊 What can I help you with?",
-        "Likewise! I'm glad we can chat.",
-        "That's nice of you to say! What shall we talk about?",
-        "Glad to chat with you! What would you like to know?",
-        "Thank you! I'm happy to help whenever I can."
+        "Glad to hear that!",
+        "That's great!",
+        "Happy to help!"
     ],
-
     "compliment": [
-        "Thank you! 😊 I'm glad I could help.",
-        "That's kind of you! Let me know if you need anything else.",
-        "I appreciate that! What else can I help you with?",
-        "Thanks! I'll do my best to keep helping you."
+        "Thank you! I'm glad I could help."
     ],
-
     "thanks": [
-        "You're very welcome! 😊",
+        "You're welcome!",
         "Happy to help!",
-        "Anytime! Let me know if you have another question.",
-        "Glad I could help. Is there anything else you'd like to know?"
+        "Anytime!"
     ],
-
     "no_problem": [
-        "No problem at all! 😊 I'm here if you need anything.",
-        "That's completely fine. Feel free to come back whenever you need help.",
-        "All good! Let me know if another question comes up.",
-        "No worries. Have a great day!"
+        "No problem! Let me know if you need anything else."
     ],
-
     "positive": [
-        "Great! 😊 What would you like to do next?",
-        "Sounds good! How can I help from here?",
-        "Perfect. Let me know what you'd like to know next."
+        "Great! Let me know if you need any further assistance."
     ],
-
     "negative": [
-        "No problem. We can leave it there for now.",
-        "That's absolutely fine! I'm here if you need anything later.",
-        "Understood. Feel free to ask whenever you want."
+        "I'm sorry to hear that. Tell me a little more so I can help."
     ],
-
     "farewell": [
-        "It was nice chatting with you! Take care and best of luck! 👋",
-        "Goodbye! Have a wonderful day, and good luck with your projects!",
-        "See you later! Feel free to return whenever you need help.",
-        "Take care! Wishing you success with your internship."
+        "Goodbye! Best of luck with your internship.",
+        "See you later! Have a great day.",
+        "Bye! Feel free to come back whenever you need help."
     ],
-
     "help": [
-        "Here's what I can help with:\n"
-        "• Greetings and general conversation\n"
-        "• Internship and organization questions\n"
-        "• Project tasks and submission FAQs\n"
-        "• Certificate information\n"
-        "• Business hours listed in the sample FAQ\n"
-        "• My identity and information sources\n\n"
-        "Ask in your own words, or type 'bye' to end the chat.",
-
-        "You can ask me about project submission, GitHub, certificates, "
-        "internship details, business hours or how I work. "
-        "I can also handle everyday greetings and short replies."
+        "You can ask me about internship enrollment, FAQs, "
+        "business hours, project submission, certificates, "
+        "or the chatbot itself."
     ],
-
     "unknown": [
-        "I want to give you an accurate answer. Could you explain what you mean?",
-        "I'm not quite sure I understood that. Could you try asking another way?",
-        "Could you add a little detail? I don't want to guess and give you the wrong answer.",
-        "I couldn't confidently match that to my available information. "
-        "Could you rephrase your question?",
-        "I'm happy to help, but I need a little more context to answer correctly."
+        "Sorry, I didn't understand that. Could you rephrase it?",
+        "I'm not sure about that. Try asking about enrollment, "
+        "business hours, project submission, or certificates.",
+        "I couldn't find a suitable answer. Please try different wording."
     ]
 }
 
 
-# -------------------- PATTERNS --------------------
+# -------------------- INTENT PATTERNS --------------------
 
 PATTERNS = {
     "exit": (
-        r"\b(bye|goodbye|good bye|farewell|"
-        r"see you|see ya|take care|talk to you later|"
-        r"got to go|have to go|i have to leave)\b"
+        r"\b(bye|goodbye|exit|quit|see you|see ya|"
+        r"good night|goodbye chatbot)\b"
     ),
 
     "greeting": (
-        r"\b(hello|hey|hi|howdy|"
-        r"good morning|good afternoon|good evening|"
-        r"good night|morning|afternoon|evening)\b"
+        r"\b(hi|hello|hey|salam|assalamualaikum|"
+        r"good morning|good afternoon|good evening)\b"
     ),
 
     "how_are_you": (
-        r"\b(how are you|how are you doing|"
-        r"how have you been|how is it going|"
-        r"how's it going|hows it going|"
-        r"how are things|are you doing well)\b"
+        r"\b(how are you|how are u|how are things|"
+        r"how's it going|how do you feel)\b"
     ),
 
     "identity": (
-        r"\b(are you a bot|are you human|are you a human|"
-        r"are you real|are you a real person|"
-        r"who are you|what are you|"
-        r"are you an ai|are you artificial intelligence|"
-        r"what is your name|whats your name|"
-        r"who am i talking to)\b"
+        r"\b(who are you|what are you|your name|"
+        r"what can you do|tell me about yourself)\b"
     ),
 
     "conversation": (
-        r"\b(can i talk to you|can we talk|"
-        r"may i talk to you|i want to talk|"
-        r"let's talk|lets talk|"
-        r"can i ask you something|"
-        r"may i ask you something|"
-        r"are you there|are you listening)\b"
+        r"\b(let's talk|can we talk|talk to me|"
+        r"are you there|anyone there)\b"
     ),
 
     "pleasant": (
-        r"\b(glad to (talk|chat|speak|meet)|"
-        r"good to (talk|chat|meet|speak)|"
-        r"nice to (talk|chat|meet|speak)|"
-        r"pleased to (meet|talk|chat)|"
-        r"pleasure (talking|meeting|speaking)|"
-        r"enjoyed (talking|chatting|meeting)|"
-        r"happy to (talk|chat|meet))\b"
+        r"\b(i am fine|i'm fine|i am good|i'm good|"
+        r"doing well|all good|great thanks)\b"
     ),
 
     "thanks": (
-        r"\b(thanks|thank you|thankyou|thx|"
-        r"many thanks|much appreciated)\b"
+        r"\b(thanks|thank you|thx|thank u|many thanks)\b"
     ),
 
     "compliment": (
-        r"\b(you are helpful|you're helpful|"
-        r"you are great|you're great|"
-        r"you are amazing|you're amazing|"
-        r"you are nice|you're nice|"
-        r"you helped me|you are the best|"
-        r"good job|well done)\b"
+        r"\b(good job|well done|you are great|"
+        r"you're great|awesome chatbot|nice work)\b"
     ),
 
     "no_problem": (
-        r"\b(no nothing|nothing else|nothing more|"
-        r"no thanks|no thank you|"
-        r"that's all|that is all|"
-        r"nothing for now|not anything|"
-        r"no need|never mind|nevermind|"
-        r"leave it|not now|nope)\b"
+        r"\b(no problem|never mind|it's okay|its okay)\b"
     ),
 
     "positive": (
-        r"^(yes|yes please|yeah|yep|sure|"
-        r"okay|ok|alright|all right|"
-        r"sounds good|of course|please do)[!. ]*$"
+        r"\b(great|excellent|perfect|sounds good|"
+        r"that's good|that is good)\b"
     ),
 
     "negative": (
-        r"^(no|nope|not really|"
-        r"i don't think so|i do not think so)[!. ]*$"
+        r"\b(not good|bad experience|i am upset|"
+        r"i'm upset|disappointed|unhappy)\b"
     ),
 
     "help": (
-        r"\b(help|help me|show menu|show options|"
-        r"what can you do|what can you help me with|"
-        r"how can you help|how may you help|"
-        r"how can you assist|available options)\b"
+        r"\b(help|what can i ask|available commands|"
+        r"what do you support|show options)\b"
     ),
 
     "source": (
-        r"\b(how do you know|how did you know|"
-        r"where did you get|where do you get|"
-        r"what is your source|where is your source|"
-        r"source of this|source of the information|"
-        r"where did this come from|"
-        r"how can you confirm|is that official|"
-        r"are you sure|where did you learn)\b"
+        r"\b(source code|show code|your code|"
+        r"how were you built|how do you work)\b"
     ),
 
     "familiar": (
-        r"\b(are you familiar|do you know about|"
-        r"are you aware of|do you understand|"
-        r"tell me about this project|"
-        r"explain this project)\b"
+        r"\b(remember me|do you know me|"
+        r"do you remember|who am i)\b"
     ),
 
     "organization": (
-        r"\b(what is datheon|tell me about datheon|"
-        r"about datheon|daitheon|"
-        r"datheon organization|who runs datheon|"
-        r"who founded datheon|what organization is this|"
-        r"which organization|who is behind datheon)\b"
+        r"\b(datheon|about the company|about the organization|"
+        r"who founded|founder|company history|"
+        r"official website|is datheon official)\b"
+    ),
+
+    "enrollment": (
+        r"\b(enroll|enrollment|register|registration|"
+        r"sign up|signup|apply|application|join)\b"
+        r".{0,70}\b(in|for|to|the|this|your)?\s*"
+        r"\b(internship|intern|program|batch|training)\b"
+        r"|\b(how|where|when)\b.{0,40}"
+        r"\b(join|enroll|register|apply|sign up)\b"
+        r".{0,40}\b(internship|program|batch|training)\b"
     ),
 
     "internship": (
-        r"\b(what is this internship|"
-        r"tell me about the internship|"
-        r"internship details|internship program|"
-        r"what is the program about|"
-        r"what does this internship involve|"
-        r"what will i learn|what are the internship tasks)\b"
+        r"\b(internship|intern|interns|"
+        r"program details|internship details)\b"
     ),
 
     "submission": (
-        r"\b(submit|submission|upload|"
-        r"turn in|hand in|github repository|"
-        r"project submission|submit my task)\b"
+        r"\b(submit|submission|upload|uploaded|"
+        r"turn in|hand in|github|repository|repo|"
+        r"student workspace|project deadline)\b"
     ),
 
     "certificate": (
-        r"\b(certificate|certificates|certificayte|"
-        r"certificte|certifcate|certificat|"
-        r"credentials|credential|"
-        r"certificate status|official certificate)\b"
+        r"\b(certificate|certification|completion certificate|"
+        r"certificate status|when will i get my certificate)\b"
     ),
 
     "hours": (
-        r"\b(business hours|opening hours|opening time|"
-        r"working hours|when are you open|"
-        r"when do you close|office timing|office hours)\b"
+        r"\b(business hours|working hours|office hours|"
+        r"opening hours|closing time|office timing|"
+        r"when are you open|when does the office close)\b"
     ),
 
     "where": (
-        r"\b(where|which page|which section|"
-        r"where can i find|where do i find|"
-        r"where can i see|where do i see|"
-        r"where do i check|how can i check|"
-        r"how do i check|from where)\b"
+        r"\b(where are you|office location|"
+        r"address|location|where is the office)\b"
     ),
 
     "ready": (
-        r"\b(my project is ready|"
-        r"project is completed|"
-        r"i have finished my project|"
-        r"i completed my project|"
-        r"my task is done)\b"
+        r"\b(my project is ready|project is ready|"
+        r"i have completed my project|"
+        r"i finished my project|project completed|"
+        r"my task is complete|task completed)\b"
     )
 }
 
 
-# -------------------- TEXT PROCESSING --------------------
+# -------------------- TYPO CORRECTION --------------------
 
-def normalize(text):
+TYPO_CORRECTIONS = {
+    "u": "you",
+    "ur": "your",
+    "r": "are",
+    "plz": "please",
+    "pls": "please",
+    "thx": "thanks",
+    "thanx": "thanks",
+    "helo": "hello",
+    "helloo": "hello",
+    "hii": "hi",
+    "heyy": "hey",
+    "gladt": "glad",
+    "enrolll": "enroll",
+    "enrol": "enroll",
+    "regster": "register",
+    "regist er": "register",
+    "aply": "apply",
+    "aplly": "apply",
+    "internsh ip": "internship",
+    "intership": "internship",
+    "interrnship": "internship",
+    "internhips": "internship",
+    "submision": "submission",
+    "submisson": "submission",
+    "certifcate": "certificate",
+    "certficate": "certificate",
+    "buisness": "business",
+    "houres": "hours",
+    "projecct": "project",
+    "myprojevct": "myproject",
+    "rady": "ready",
+    "thier": "their",
+    "recieve": "receive",
+    "teh": "the",
+    "wht": "what",
+    "hw": "how",
+    "whr": "where",
+    "abt": "about",
+    "info": "information",
+    "asignmnt": "assignment",
+    "assignmnt": "assignment",
+    "complet": "complete",
+    "completd": "completed",
+    "cert": "certificate",
+    "gud": "good",
+    "nic": "nice",
+    "awsome": "awesome",
+    "bottt": "bot"
+}
+
+
+def normalize_text(text):
+    """Normalize user input for reliable pattern matching."""
     text = text.lower().strip()
-    text = re.sub(r"[’`]", "'", text)
+    text = re.sub(r"[^\w\s'-]", " ", text)
     text = re.sub(r"\s+", " ", text)
     return text
 
 
 def correct_typos(text):
-    """Correct common known misspellings."""
-    corrections = {
-        "intrship": "internship",
-        "intership": "internship",
-        "interrnship": "internship",
-        "certificayte": "certificate",
-        "certificte": "certificate",
-        "certifcate": "certificate",
-        "certificat": "certificate",
-        "recieve": "receive",
-        "recive": "receive",
-        "submision": "submission",
-        "submmit": "submit",
-        "subbmit": "submit",
-        "orgnization": "organization",
-        "organisaton": "organization",
-        "helo": "hello",
-        "helllo": "hello",
-        "mornig": "morning",
-        "thnaks": "thanks",
-        "thak": "thank",
-        "talkk": "talk",
-        "tallk": "talk",
-        "wht": "what",
-        "hw": "how",
-        "plz": "please",
-        "pls": "please",
-        "u": "you",
-        "ur": "your"
-    }
-
+    """Correct common spelling mistakes without external libraries."""
     words = text.split()
-    return " ".join(corrections.get(word, word) for word in words)
+    corrected_words = []
+
+    for word in words:
+        corrected_words.append(TYPO_CORRECTIONS.get(word, word))
+
+    return " ".join(corrected_words)
 
 
-def match(pattern, text):
-    return re.search(pattern, text, re.IGNORECASE) is not None
+def fuzzy_text(text):
+    """Apply conservative fuzzy matching to common words."""
+    words = text.split()
+    common_words = [
+        "hello",
+        "internship",
+        "certificate",
+        "submission",
+        "project",
+        "register",
+        "enroll",
+        "business",
+        "hours",
+        "ready",
+        "thanks",
+        "help"
+    ]
 
-
-def pick(category):
-    return random.choice(REPLIES[category])
-
-
-def close_word(word, candidates, threshold=0.84):
-    """Find a likely spelling match among known words."""
-    best_word = None
-    best_score = 0
-
-    for candidate in candidates:
-        if abs(len(word) - len(candidate)) > 2:
-            continue
-
-        score = SequenceMatcher(None, word, candidate).ratio()
-
-        if score > best_score:
-            best_word = candidate
-            best_score = score
-
-    return best_word if best_score >= threshold else None
-
-
-def fuzzy_text(text, known_words):
-    """Correct a word only when a close known word exists."""
     corrected = []
 
-    for word in text.split():
-        if len(word) < 5 or not word.isalpha():
-            corrected.append(word)
+    for word in words:
+        if word in TYPO_CORRECTIONS:
+            corrected.append(TYPO_CORRECTIONS[word])
             continue
 
-        replacement = close_word(word, known_words)
+        best_match = word
+        best_score = 0.0
 
-        corrected.append(replacement if replacement else word)
+        if len(word) >= 5:
+            for candidate in common_words:
+                score = SequenceMatcher(
+                    None, word, candidate
+                ).ratio()
+
+                if score > best_score:
+                    best_score = score
+                    best_match = candidate
+
+        if best_score >= 0.84 and best_match != word:
+            corrected.append(best_match)
+        else:
+            corrected.append(word)
 
     return " ".join(corrected)
 
 
-# -------------------- CHATBOT --------------------
+# -------------------- LOAD FAQ DATA --------------------
+
+def load_faqs():
+    """
+    Load FAQ data from faqs.json.
+
+    Expected format:
+    {
+        "faqs": [
+            {
+                "keywords": ["hours", "timing"],
+                "answer": "Example answer"
+            }
+        ]
+    }
+    """
+    if not FAQ_FILE.exists():
+        print(
+            "[Warning] faqs.json was not found. "
+            "Built-in responses will still work."
+        )
+        return []
+
+    try:
+        with FAQ_FILE.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+
+        if isinstance(data, dict):
+            faqs = data.get("faqs", [])
+        elif isinstance(data, list):
+            faqs = data
+        else:
+            print("[Warning] FAQ file has an invalid structure.")
+            return []
+
+        if not isinstance(faqs, list):
+            print("[Warning] The 'faqs' field must be a list.")
+            return []
+
+        valid_faqs = []
+
+        for item in faqs:
+            if not isinstance(item, dict):
+                continue
+
+            keywords = item.get("keywords", [])
+            answer = item.get("answer", "")
+
+            if (
+                isinstance(keywords, list)
+                and isinstance(answer, str)
+                and answer.strip()
+            ):
+                valid_faqs.append({
+                    "keywords": [
+                        str(keyword).lower().strip()
+                        for keyword in keywords
+                        if str(keyword).strip()
+                    ],
+                    "answer": answer.strip()
+                })
+
+        return valid_faqs
+
+    except json.JSONDecodeError:
+        print(
+            "[Warning] faqs.json contains invalid JSON. "
+            "Please check its format."
+        )
+        return []
+
+    except OSError as error:
+        print(f"[Warning] Could not read FAQ file: {error}")
+        return []
+
+
+# -------------------- FAQ MATCHING --------------------
+
+def find_faqs(text, faqs):
+    """Find FAQ answers using keyword matching."""
+    matches = []
+    normalized = normalize_text(text)
+
+    for faq in faqs:
+        keywords = faq.get("keywords", [])
+        answer = faq.get("answer", "")
+
+        for keyword in keywords:
+            keyword = normalize_text(keyword)
+
+            if not keyword:
+                continue
+
+            pattern = r"\b" + re.escape(keyword) + r"\b"
+
+            if re.search(pattern, normalized):
+                matches.append(answer)
+                break
+
+    return matches
+
+
+# -------------------- CHATBOT CLASS --------------------
 
 class SupportChatbot:
+    """Rule-based customer support chatbot."""
 
     def __init__(self):
-        self.last_topic = None
-        self.last_answer = None
-        self.last_intents = []
-        self.conversation_started = False
+        self.faqs = load_faqs()
+        self.user_name = None
+        self.message_count = 0
 
-        self.known_words = {
-            "internship", "certificate", "organization",
-            "submission", "project", "business", "hours",
-            "greeting", "morning", "afternoon", "evening",
-            "hello", "thanks", "talk", "chat", "help",
-            "submit", "upload", "official", "information"
-        }
+    @staticmethod
+    def pick(intent):
+        """Return a random response for an intent."""
+        return random.choice(REPLIES[intent])
 
-        for faq in FAQS:
-            self.known_words.update(faq["question"].lower().split())
-            for keyword in faq["keywords"]:
-                self.known_words.update(keyword.lower().split())
+    def answer_topic(self, topic, user_text):
+        """Answer topic-specific questions."""
 
-    def find_faqs(self, text):
-        """Match FAQ keywords, phrases and question wording."""
-        found = []
-
-        for faq in FAQS:
-            score = 0
-
-            for keyword in faq["keywords"]:
-                keyword = keyword.lower()
-
-                if keyword in text:
-                    score = max(score, 4)
-                    continue
-
-                # Fuzzy matching is restricted to single words.
-                if " " not in keyword:
-                    words = re.findall(r"[a-z]+", text)
-                    if any(
-                        close_word(word, [keyword], 0.86)
-                        for word in words
-                        if len(word) >= 5
-                    ):
-                        score = max(score, 2)
-
-            question_words = [
-                word for word in re.findall(
-                    r"\b[a-z]{4,}\b", faq["question"].lower()
-                )
-                if word not in {
-                    "what", "when", "where", "your", "have",
-                    "does", "this", "that", "from", "with",
-                    "will", "into", "how", "much"
-                }
-            ]
-
-            if question_words:
-                hits = sum(
-                    1 for word in question_words
-                    if word in text.split()
-                )
-
-                if hits / len(question_words) >= 0.5:
-                    score = max(score, 2)
-
-            if score >= 2:
-                found.append((score, faq))
-
-        found.sort(key=lambda item: item[0], reverse=True)
-
-        # Return one strongest FAQ per intent.
-        unique = {}
-        for score, faq in found:
-            if faq["intent"] not in unique:
-                unique[faq["intent"]] = faq
-
-        return list(unique.values())
-
-    def source_answer(self):
-        if self.last_topic:
-            faq = next(
-                (
-                    item for item in FAQS
-                    if item["intent"] == self.last_topic
-                ),
-                None
+        if topic == "enrollment":
+            return (
+                "For internship enrollment, check the official "
+                "program announcement or instructions provided "
+                "by your internship coordinator. Follow the stated "
+                "registration process and submit accurate details. "
+                "I don't have a verified registration link, so I "
+                "won't invent one."
             )
 
-            if faq:
+        if topic == "organization":
+            return (
+                "I'm configured to answer questions related to the "
+                "Datheon Python Programming Internship task. I don't "
+                "have verified information about the organization's "
+                "founders, full history, or official registration status. "
+                "Please consult its official materials for confirmation."
+            )
+
+        if topic == "internship":
+            return (
+                "This chatbot is designed for internship-related "
+                "questions, including enrollment, assignments, "
+                "project submission, and certificates. Ask me about "
+                "any of these topics."
+            )
+
+        if topic == "submission":
+            return (
+                "The sample FAQ for this project says to submit "
+                "your project through a public GitHub repository "
+                "using the Student Workspace. Check your actual "
+                "internship instructions to confirm the required "
+                "submission method and deadline."
+            )
+
+        if topic == "certificate":
+            return (
+                "The sample FAQ says certificates are issued "
+                "3–5 business days after code review. This is "
+                "sample project data, not a verified Datheon policy. "
+                "For your actual certificate status, contact your "
+                "internship coordinator."
+            )
+
+        if topic == "hours":
+            return (
+                "The sample FAQ lists business hours as Monday "
+                "to Friday, 9:00 AM–6:00 PM IST. Please verify "
+                "these times against the actual organization's "
+                "official information."
+            )
+
+        if topic == "where":
+            return (
+                "I don't have a verified office address. Please "
+                "check the organization's official website or "
+                "internship communication for its location."
+            )
+
+        if topic == "source":
+            return (
+                "I'm a Python rule-based chatbot. I use regular "
+                "expressions, keyword matching, typo correction, "
+                "and FAQ data loaded from a JSON file to generate "
+                "responses."
+            )
+
+        if topic == "familiar":
+            return (
+                "I can use information from our current conversation, "
+                "but I don't automatically know your identity or "
+                "remember personal details across separate sessions."
+            )
+
+        if topic == "ready":
+            if re.search(
+                r"\b(submit|submission|upload|github|repo|"
+                r"student workspace|where|how)\b",
+                user_text
+            ):
                 return (
-                    f"The information I gave about "
-                    f"'{faq['question']}' comes from this demo's "
-                    "faqs.json file. It isn't a live check of Datheon "
-                    "systems, so please verify important details through "
-                    "your official program instructions."
+                    "Great! If your project is ready, review your "
+                    "internship instructions, check that your GitHub "
+                    "repository contains the required files, and "
+                    "follow the official submission process."
                 )
 
-        return (
-            "My answers come from programmed Python rules and the sample "
-            "FAQs in faqs.json. I don't have live access to Datheon systems "
-            "or private student records."
-        )
-
-    def location_answer(self):
-        if self.last_topic == "certificate":
             return (
-                "Start by checking your official internship portal for "
-                "certificate or credential updates. I can't see your "
-                "account, so I can't confirm your personal status."
+                "Great! Your project is ready. Before submitting, "
+                "test your code, check for errors, include a README, "
+                "and follow the internship's official submission "
+                "instructions."
             )
-
-        if self.last_topic == "project_submission":
-            return (
-                "Look in your official internship portal for Student "
-                "Workspace or project-submission instructions. The exact "
-                "page may vary by batch."
-            )
-
-        if self.last_topic == "business_hours":
-            return (
-                "The hours in this demo come from its sample FAQ. "
-                "Please confirm the correct timing with the organization."
-            )
-
-        return (
-            "What are you trying to find: project-submission instructions, "
-            "certificate information, or organization details?"
-        )
-
-    def faq_answer(self, intent, faq_matches):
-        faq = next(
-            (item for item in faq_matches if item["intent"] == intent),
-            None
-        )
-
-        if faq is None:
-            faq = next(
-                (item for item in FAQS if item["intent"] == intent),
-                None
-            )
-
-        if faq:
-            self.last_topic = intent
-            self.last_answer = faq["answer"]
-            return faq["answer"]
 
         return None
 
-    def answer_topic(self, intent, faq_matches):
-        if intent == "organization":
-            self.last_topic = "organization"
-            return (
-                "I can share information available in this demo, but the "
-                "current FAQ data doesn't establish all facts about "
-                "Datheon. I won't guess about its founders, registration "
-                "or official status. Please consult verified organizational "
-                "materials for those details."
-            )
+    def detect_intents(self, text):
+        """Detect all matching intents in normalized input."""
+        detected = []
 
-        if intent == "internship":
-            self.last_topic = "internship_details"
+        for intent, pattern in PATTERNS.items():
+            if re.search(pattern, text, flags=re.IGNORECASE):
+                detected.append(intent)
 
-            answer = self.faq_answer(
-                "internship_details", faq_matches
-            )
-
-            return answer or (
-                "This chatbot can answer the internship questions covered "
-                "by its FAQ data. For the actual program's schedule, "
-                "deadlines, eligibility and requirements, follow the "
-                "official instructions for your batch."
-            )
-
-        if intent == "familiar":
-            self.last_topic = "internship_details"
-            return (
-                "I can explain this chatbot project. It is a rule-based "
-                "Python program that uses regex, keyword matching and a "
-                "JSON FAQ dataset. If you mean the actual Datheon program, "
-                "I can only share information available in the configured "
-                "FAQs, not private or live program details."
-            )
-
-        if intent == "submission":
-            answer = self.faq_answer(
-                "project_submission", faq_matches
-            )
-
-            return answer or (
-                "The demo FAQ may contain submission guidance, but I can't "
-                "verify your batch's exact process. Check the official "
-                "internship portal and follow its current instructions."
-            )
-
-        if intent == "certificate":
-            answer = self.faq_answer("certificate", faq_matches)
-
-            return answer or (
-                "For your certificate status, check your official internship "
-                "portal. I can't access your account or confirm when your "
-                "certificate will be issued."
-            )
-
-        if intent == "hours":
-            answer = self.faq_answer("business_hours", faq_matches)
-
-            return answer or (
-                "I don't have verified business hours available. Please "
-                "check the organization's official information."
-            )
-
-        answer = self.faq_answer(intent, faq_matches)
-        return answer
+        return detected
 
     def respond(self, user_input):
-        original = normalize(user_input)
+        """Generate a response and an exit flag."""
+        original = user_input.strip()
 
         if not original:
-            return "I didn't catch that. Could you type something for me?", False
+            return "Please type a message so I can help.", False
 
-        text = correct_typos(original)
-        text = fuzzy_text(text, self.known_words)
+        self.message_count += 1
 
-        # Find all relevant FAQ intents.
-        faq_matches = self.find_faqs(text)
-        faq_intents = {faq["intent"] for faq in faq_matches}
+        normalized = normalize_text(original)
+        corrected = correct_typos(normalized)
+        corrected = fuzzy_text(corrected)
+        corrected = normalize_text(corrected)
 
-        # -------- 1. Exit takes priority --------
-        if match(PATTERNS["exit"], text):
-            extra = ""
-
-            if match(PATTERNS["pleasant"], text):
-                extra = " It was nice talking to you too!"
-
-            self.conversation_started = False
-            return pick("farewell") + extra, True
-
-        # -------- 2. Identity --------
-        if match(PATTERNS["identity"], text):
-            self.last_topic = "identity"
-            self.conversation_started = True
-            return pick("identity"), False
-
-        # -------- 3. Source of previous answer --------
-        if match(PATTERNS["source"], text):
-            return self.source_answer(), False
-
-        # -------- 4. Friendly conversation --------
-        if match(PATTERNS["how_are_you"], text):
-            return pick("how_are_you"), False
-
-        if match(PATTERNS["conversation"], text):
-            return pick("conversation"), False
-
-        if match(PATTERNS["pleasant"], text):
-            return pick("pleasant"), False
-
-        if match(PATTERNS["thanks"], text):
-            return pick("thanks"), False
-
-        if match(PATTERNS["compliment"], text):
-            return pick("compliment"), False
-
-        if match(PATTERNS["no_problem"], text):
-            return pick("no_problem"), False
-
-        if match(PATTERNS["help"], text) or text in {
-            "help", "menu", "options"
-        }:
-            return pick("help"), False
-
-        # -------- 5. Recognize topics independently --------
-        topics = []
-
-        if match(PATTERNS["organization"], text):
-            topics.append("organization")
-
-        if match(PATTERNS["internship"], text):
-            topics.append("internship")
-
-        if match(PATTERNS["familiar"], text):
-            topics.append("familiar")
-
-        if (
-            match(PATTERNS["submission"], text)
-            and match(
-                r"\b(project|task|assignment|github|repository)\b",
-                text
-            )
+        # Exit has priority, avoiding duplicate farewell messages.
+        if re.fullmatch(
+            r"(bye|goodbye|exit|quit|see you|see ya|"
+            r"good night|goodbye chatbot)",
+            corrected
         ):
-            topics.append("submission")
+            return self.pick("farewell"), True
 
-        if (
-            "project_submission" in faq_intents
-            and "submission" not in topics
-        ):
-            topics.append("submission")
+        intents = self.detect_intents(corrected)
 
-        if match(PATTERNS["certificate"], text) or "certificate" in faq_intents:
-            topics.append("certificate")
+        # Handle project readiness before general FAQ topics.
+        if "ready" in intents:
+            return self.answer_topic("ready", corrected), False
 
-        if match(PATTERNS["hours"], text) or "business_hours" in faq_intents:
-            topics.append("hours")
+        # Enrollment should take priority over general internship.
+        topic_priority = [
+            "enrollment",
+            "submission",
+            "certificate",
+            "hours",
+            "where",
+            "organization",
+            "source",
+            "familiar",
+            "internship"
+        ]
 
-        # Map any other matched FAQ intents to their stored answers.
-        known_intents = {
-            "project_submission", "certificate", "business_hours",
-            "internship_details", "support"
-        }
+        for topic in topic_priority:
+            if topic in intents:
+                response = self.answer_topic(topic, corrected)
 
-        for intent in faq_intents:
-            if intent in known_intents:
-                if intent == "project_submission" and "submission" not in topics:
-                    topics.append("submission")
-                elif intent == "business_hours" and "hours" not in topics:
-                    topics.append("hours")
-                elif intent == "internship_details" and "internship" not in topics:
-                    topics.append("internship")
+                if response:
+                    return response, False
 
-        # -------- 6. Greeting detection --------
-        greeting = match(PATTERNS["greeting"], text)
+        # Search the loaded FAQ dataset.
+        faq_matches = find_faqs(corrected, self.faqs)
 
-        # -------- 7. Contextual follow-up --------
-        if match(PATTERNS["where"], text) and not topics:
-            return self.location_answer(), False
+        if faq_matches:
+            return faq_matches[0], False
 
-        if text in {
-            "yes", "yes please", "sure", "okay", "ok",
-            "tell me more", "what next", "and then",
-            "what about that", "and what about it"
-        }:
-            if self.last_topic in {
-                "certificate", "project_submission", "business_hours"
-            }:
-                return self.location_answer(), False
+        # Handle social and conversational intents.
+        conversational_priority = [
+            "how_are_you",
+            "identity",
+            "greeting",
+            "thanks",
+            "compliment",
+            "no_problem",
+            "pleasant",
+            "negative",
+            "positive",
+            "conversation",
+            "help"
+        ]
 
-            return "Sure! What would you like me to explain?", False
+        for intent in conversational_priority:
+            if intent in intents:
+                return self.pick(intent), False
 
-        # -------- 8. Respond to recognized topics --------
-        responses = []
+        return self.pick("unknown"), False
 
-        for topic in topics:
-            answer = self.answer_topic(topic, faq_matches)
+    def run(self):
+        """Start the interactive chatbot."""
+        print("=" * 58)
+        print("  DATHEON INTERNSHIP SUPPORT CHATBOT - VERSION 5.1")
+        print("=" * 58)
+        print("Hello! I'm your Python-based support chatbot.")
+        print("Type 'help' to see topics you can ask about.")
+        print("Type 'bye', 'exit', or 'quit' to end the chat.")
+        print("-" * 58)
 
-            if answer and answer not in responses:
-                responses.append(answer)
-
-        # Multiple questions: return answers for each distinct topic.
-        if responses:
-            if greeting:
-                responses.insert(0, pick("greeting"))
-
-            self.conversation_started = True
-            return "\n\n".join(responses), False
-
-        # -------- 9. Greeting-only messages --------
-        if greeting:
-            self.conversation_started = True
-            return pick("greeting"), False
-
-        # -------- 10. Short conversational replies --------
-        if match(PATTERNS["positive"], text):
-            if self.last_topic:
-                return pick("positive"), False
-
-            return "Great! 😊 What would you like to talk about?", False
-
-        if match(PATTERNS["negative"], text):
-            return pick("negative"), False
-
-        # -------- 11. Ready project --------
-        if match(PATTERNS["ready"], text):
-            self.last_topic = "project_submission"
-            return (
-                "Well done on completing your project! 🎉 "
-                "Would you like help checking your repository or finding "
-                "the official submission instructions?",
-                False
-            )
-
-        # -------- 12. Natural fallback --------
-        return pick("unknown"), False
-
-
-# -------------------- MAIN PROGRAM --------------------
-
-def main():
-    bot = SupportChatbot()
-
-    print("=" * 60)
-    print("             DATHEON INTERNSHIP SUPPORT BOT")
-    print("                       VERSION 5.0")
-    print("=" * 60)
-    print("Bot: Hello! 👋 I'm your internship support assistant.")
-    print("Bot: Ask me about supported FAQs or just say hello.")
-    print("Bot: Type 'help' for options or 'bye' to exit.\n")
-
-    if not FAQS:
-        print("Notice: No valid FAQs were loaded from faqs.json.\n")
-
-    while True:
-        try:
-            user_input = input("You: ")
-            response, should_exit = bot.respond(user_input)
-            print(f"\nBot: {response}\n")
-
-            if should_exit:
+        while True:
+            try:
+                user_input = input("You: ")
+            except (EOFError, KeyboardInterrupt):
+                print("\nBot:", self.pick("farewell"))
                 break
 
-        except (KeyboardInterrupt, EOFError):
-            print("\nBot: Chat ended. Take care! 👋")
-            break
+            response, should_exit = self.respond(user_input)
+            print("Bot:", response)
 
-        except Exception as error:
-            print(
-                "\nBot: Sorry, something went wrong. "
-                "Please try asking again.\n"
-            )
-            print(f"[Debug information: {error}]\n")
+            if should_exit:
+                print("-" * 58)
+                print(
+                    f"Chat ended. Messages received: "
+                    f"{self.message_count}"
+                )
+                break
+
+
+# -------------------- PROGRAM ENTRY POINT --------------------
+
+def main():
+    chatbot = SupportChatbot()
+    chatbot.run()
 
 
 if __name__ == "__main__":
